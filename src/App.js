@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import {
   SafeAreaView,
@@ -8,33 +8,36 @@ import {
   StatusBar,
   StyleSheet,
   TouchableOpacity,
+  Alert,
 } from "react-native";
+import api from "./services/api";
 
-function Repository({ data, handleLikeRepository }) {
+function Repository({ data: repository, handleLikeRepository }) {
   return (
     <View style={styles.repositoryContainer}>
-      <Text style={styles.repository}>Repository 1</Text>
+      <Text style={styles.repository}>{repository.title}</Text>
 
       <View style={styles.techsContainer}>
-        <Text style={styles.tech}>ReactJS</Text>
-        <Text style={styles.tech}>Node.js</Text>
+        {repository.techs.map((item) => (
+          <Text style={styles.tech} key={String(item)}>
+            {item}
+          </Text>
+        ))}
       </View>
 
       <View style={styles.likesContainer}>
         <Text
           style={styles.likeText}
-          // Remember to replace "1" below with repository ID: {`repository-likes-${repository.id}`}
-          testID={`repository-likes-1`}
+          testID={`repository-likes-${repository.id}`}
         >
-          3 curtidas
+          {repository.likes} curtidas
         </Text>
       </View>
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => handleLikeRepository(1)}
-        // Remember to replace "1" below with repository ID: {`like-button-${repository.id}`}
-        testID={`like-button-1`}
+        onPress={() => handleLikeRepository(repository.id)}
+        testID={`like-button-${repository.id}`}
       >
         <Text style={styles.buttonText}>Curtir</Text>
       </TouchableOpacity>
@@ -43,9 +46,37 @@ function Repository({ data, handleLikeRepository }) {
 }
 
 export default function App() {
-  const [repositories, setRepositories] = useState([{ id: 1 }, { id: 2 }]);
+  const [repositories, setRepositories] = useState([]);
+
+  useEffect(() => {
+    async function loadRepositories() {
+      try {
+        const response = await api.get("/repositories");
+
+        setRepositories(response.data);
+      } catch (error) {
+        Alert.alert(
+          "Erro",
+          "Erro ao carregar repositórios, cheque sua conexão"
+        );
+      }
+    }
+
+    loadRepositories();
+  }, []);
   async function handleLikeRepository(id) {
-    // Implement "Like Repository" functionality
+    try {
+      const { data } = await api.post(`/repositories/${id}/like`);
+
+      const index = repositories.findIndex((repo) => repo.id === id);
+
+      const reposList = [...repositories];
+      reposList[index] = data;
+
+      setRepositories(reposList);
+    } catch (error) {
+      Alert.alert("Erro", "Erro ao curtir um repositório, cheque sua conexão");
+    }
   }
 
   return (
